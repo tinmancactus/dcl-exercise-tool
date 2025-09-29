@@ -14,62 +14,34 @@ import {
   AlertTitle,
   AlertDescription,
   HStack,
-  Badge
+  Badge,
+  Code
 } from '@chakra-ui/react';
+import { FaCheck, FaTimes } from 'react-icons/fa';
+import ExerciseProcessor from '../services/ExerciseProcessor';
 
-// Mock processing function - this would be replaced with actual implementation
-const processExercises = async (onProgress, onError) => {
-  // Simulated progress updates
-  const files = [
-    { name: 'introduction.py', status: 'success' },
-    { name: 'variables.py', status: 'success' },
-    { name: 'conditionals.py', status: 'error', error: 'Missing metadata' },
-    { name: 'loops.py', status: 'success' },
-    { name: 'functions.py', status: 'success' },
-  ];
-  
-  const totalFiles = files.length;
-  let processed = 0;
-  
-  const results = [];
-  
-  for (const file of files) {
-    // Simulate processing time
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    processed++;
-    
-    if (file.status === 'error') {
-      onError({
-        file: file.name,
-        message: file.error
-      });
-    }
-    
-    results.push({
-      file: file.name,
-      status: file.status,
-      error: file.status === 'error' ? file.error : null
+// Real processing function using ExerciseProcessor service
+const processExercises = async (config, onProgress, onError) => {
+  try {
+    // Initialize the processor
+    ExerciseProcessor.initialize({
+      canvasApiKey: config.canvasApiKey,
+      courseUrl: config.courseUrl,
+      githubRepoUrl: config.githubRepoUrl,
+      directoryPath: config.directoryPath,
+      useCorsProxy: config.useCorsProxy || false
     });
     
-    onProgress({
-      processed,
-      total: totalFiles,
-      currentFile: file.name,
-      progress: Math.floor((processed / totalFiles) * 100)
-    });
+    // Process the exercises
+    const results = await ExerciseProcessor.processExercises(onProgress, onError);
+    return results;
+  } catch (error) {
+    console.error('Processing error:', error);
+    throw error;
   }
-  
-  return {
-    totalFiles,
-    processedFiles: processed,
-    successCount: results.filter(r => r.status === 'success').length,
-    errorCount: results.filter(r => r.status === 'error').length,
-    results
-  };
 };
 
-const ProcessingStatus = ({ isProcessing, errors: initialErrors, onComplete }) => {
+const ProcessingStatus = ({ isProcessing, config, errors: initialErrors, onComplete }) => {
   const [progress, setProgress] = useState(0);
   const [currentFile, setCurrentFile] = useState('');
   const [processed, setProcessed] = useState(0);
@@ -87,6 +59,7 @@ const ProcessingStatus = ({ isProcessing, errors: initialErrors, onComplete }) =
   const startProcessing = async () => {
     try {
       const results = await processExercises(
+        config,
         (progressData) => {
           setProgress(progressData.progress);
           setCurrentFile(progressData.currentFile);
@@ -150,12 +123,23 @@ const ProcessingStatus = ({ isProcessing, errors: initialErrors, onComplete }) =
             
             {processed > 0 && (
               <List spacing={3}>
-                {Array.from({ length: processed }).map((_, i) => (
-                  <ListItem key={i} display="flex" alignItems="center">
-                    <ListIcon as={() => <span>✅</span>} color="green.500" />
-                    <Text>Processed file {i + 1}</Text>
+                {errors.map((error, i) => (
+                  <ListItem key={`error-${i}`} display="flex" alignItems="center">
+                    <ListIcon as={FaTimes} color="red.500" />
+                    <Text>
+                      <strong>{error.file}:</strong> {error.message}
+                    </Text>
                   </ListItem>
                 ))}
+                
+                {processed > errors.length && (
+                  <ListItem display="flex" alignItems="center">
+                    <ListIcon as={FaCheck} color="green.500" />
+                    <Text>
+                      Successfully processed {processed - errors.length} files
+                    </Text>
+                  </ListItem>
+                )}
               </List>
             )}
           </>

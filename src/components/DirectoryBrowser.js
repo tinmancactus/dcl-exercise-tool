@@ -19,30 +19,9 @@ import {
   BreadcrumbItem,
   BreadcrumbLink
 } from '@chakra-ui/react';
+import { FaFolder, FaFile } from 'react-icons/fa';
+import GitHubService from '../services/GitHubService';
 
-// GitHub API Service placeholder
-// In a real implementation, this would be imported from the services directory
-const fetchRepositoryContent = async (repoUrl, path = '') => {
-  // Extract owner and repo from URL
-  const urlParts = repoUrl.replace('https://github.com/', '').split('/');
-  const owner = urlParts[0];
-  const repo = urlParts[1];
-  
-  try {
-    // This would use the Octokit client in a real implementation
-    const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`);
-    
-    if (!response.ok) {
-      throw new Error(`GitHub API returned ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error fetching repo contents:', error);
-    throw error;
-  }
-};
 
 const DirectoryBrowser = ({ githubRepoUrl, onDirectorySelect }) => {
   const [currentPath, setCurrentPath] = useState('');
@@ -65,7 +44,7 @@ const DirectoryBrowser = ({ githubRepoUrl, onDirectorySelect }) => {
     setError('');
     
     try {
-      const data = await fetchRepositoryContent(githubRepoUrl, path);
+      const data = await GitHubService.getContents(githubRepoUrl, path);
       
       // Sort: directories first, then files
       const sortedData = [...data].sort((a, b) => {
@@ -154,7 +133,7 @@ const DirectoryBrowser = ({ githubRepoUrl, onDirectorySelect }) => {
                     onClick={() => item.type === 'dir' && handleItemClick(item)}
                   >
                     <HStack>
-                      <Icon as={() => <span>{item.type === 'dir' ? '📁' : '📄'}</span>} />
+                      <Icon as={item.type === 'dir' ? FaFolder : FaFile} color={item.type === 'dir' ? 'blue.500' : 'gray.500'} />
                       <Text>{item.name}</Text>
                       {item.type === 'dir' && <Text color="gray.500">/</Text>}
                     </HStack>

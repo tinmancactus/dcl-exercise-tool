@@ -21,24 +21,62 @@ class MetadataParser {
       // Extract the contents of the metadata block
       const metadataContent = match[1];
       
-      // Parse the key-value pairs
       const keyValuePairs = metadataContent.split(',').map(pair => pair.trim());
       
       const metadata = {};
       
       keyValuePairs.forEach(pair => {
-        const [key, value] = pair.split(':').map(part => part.trim());
-        if (key && value) {
-          // Remove quotes if present
-          metadata[key] = value.replace(/['"]/g, '');
+        // Handle the format "key: value" where key might not be quoted
+        const colonIndex = pair.indexOf(':');
+        if (colonIndex > 0) {
+          const key = pair.substring(0, colonIndex).trim();
+          const value = pair.substring(colonIndex + 1).trim();
+          
+          if (key && value) {
+            // Remove quotes if present
+            metadata[key] = value.replace(/["']/g, '');
+          }
         }
       });
       
       // Validate required fields
-      const requiredFields = ['course', 'page', 'placement'];
+      const requiredFields = [
+        { name: 'page', type: 'string' },
+        { name: 'placement', type: 'string' }
+      ];
+      
+      // Optional fields to validate if present
+      const optionalFields = [
+        { name: 'course', type: 'number|string' } // Now optional, used for administrative purposes only
+      ];
+      
+      // Check required fields
       for (const field of requiredFields) {
-        if (!metadata[field]) {
-          throw new Error(`Missing required metadata field: ${field}`);
+        if (metadata[field.name] === undefined || metadata[field.name] === null) {
+          throw new Error(`Required metadata field '${field.name}' is missing`);
+        }
+        
+        // Type checking for required fields
+        if (field.type === 'number|string') {
+          if (typeof metadata[field.name] !== 'number' && typeof metadata[field.name] !== 'string') {
+            throw new Error(`Metadata field '${field.name}' should be a number or string`);
+          }
+        } else if (typeof metadata[field.name] !== field.type) {
+          throw new Error(`Metadata field '${field.name}' should be a ${field.type}`);
+        }
+      }
+      
+      // Check optional fields if present
+      for (const field of optionalFields) {
+        if (metadata[field.name] !== undefined && metadata[field.name] !== null) {
+          // Type checking for optional fields
+          if (field.type === 'number|string') {
+            if (typeof metadata[field.name] !== 'number' && typeof metadata[field.name] !== 'string') {
+              throw new Error(`Optional metadata field '${field.name}' should be a number or string`);
+            }
+          } else if (typeof metadata[field.name] !== field.type) {
+            throw new Error(`Optional metadata field '${field.name}' should be a ${field.type}`);
+          }
         }
       }
       
@@ -54,10 +92,10 @@ class MetadataParser {
    * @returns {string} File content without metadata block
    */
   removeMetadataBlock(fileContent) {
-    // Regular expression to match the metadata line
-    const metadataLineRegex = /^.*__metadata__\s*=.*$/m;
+    // Regular expression to match the metadata block
+    const metadataBlockRegex = /^.*__metadata__\s*=\s*{[^}]*}.*$/m;
     
-    return fileContent.replace(metadataLineRegex, '').trim();
+    return fileContent.replace(metadataBlockRegex, '').trim();
   }
   
   /**

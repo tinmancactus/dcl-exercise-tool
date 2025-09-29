@@ -18,8 +18,14 @@ The DCL Exercise Tool helps educators easily integrate DataCamp Light coding exe
 - Canvas page updating with proper DataCamp Light embed codes
 - Error handling with options to continue or abort processing
 - Detailed reporting on the success or failure of each exercise update
+- Local-first design that avoids CORS issues with the Canvas API
 
 ## Getting Started
+
+### Requirements
+
+- Node.js (v14 or later)
+- NPM (v6 or later)
 
 ### Installation
 
@@ -33,23 +39,100 @@ cd dcl-exercise-tool
 # Install dependencies
 npm install
 
-# Start the development server
+# Create an environment file from the example
+cp .env.example .env
+
+# Optional: Add a GitHub token to increase rate limits
+# Edit the .env file and add your GitHub token
+
+# Start both the frontend and backend servers
 npm start
 ```
+
+This will start the React frontend on port 3000 and the backend server on port 3001. The application will automatically open in your default browser.
+
+### Canvas API Authentication
+
+The tool requires a Canvas API key to interact with your Canvas instance. You can generate an API key from your Canvas account settings:
+
+1. Log in to your Canvas instance
+2. Go to Account > Settings
+3. Scroll down to Approved Integrations
+4. Click "+ New Access Token"
+5. Enter a purpose and expiration date
+6. Copy the generated token for use in the DCL Exercise Tool
 
 ## Available Scripts
 
 In the project directory, you can run:
 
+### `npm start`
+
+Runs both the frontend and backend servers concurrently.
+- Frontend: [http://localhost:3000](http://localhost:3000)
+- Backend: [http://localhost:3001](http://localhost:3001)
+
+### `npm run start:frontend`
+
+Runs just the React frontend on port 3000.
+
+### `npm run start:backend`
+
+Runs just the Node.js backend on port 3001.
+
 ### `npm run build`
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+Builds the app for production to the `build` folder.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## Python File Format
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+The tool expects Python exercise files to contain a metadata block in the following format:
+
+```python
+__metadata__ = { 
+    # course is optional and only for administrative purposes
+    page: 'introduction-to-python', 
+    placement: 'datacamp' 
+}
+
+# Your Python code here...
+```
+
+- `page`: Canvas page slug/URL (required)
+- `placement`: Value of the `data-code-placement` attribute in the target div on the Canvas page (required)
+- `course`: Optional field for administrative purposes, not used by the tool
+
+## Canvas Page Format
+
+The tool looks for a div with a specific `data-code-placement` attribute in the Canvas page HTML:
+
+```html
+<div data-code-placement="datacamp"></div>
+```
+
+The DataCamp Light exercise will be inserted into this div.
+
+## Troubleshooting
+
+### GitHub Rate Limiting
+
+If you encounter GitHub API rate limiting errors, you can add your GitHub personal access token to the `.env` file:
+
+```
+GITHUB_TOKEN=your_token_here
+```
+
+This will increase your rate limit from 60 to 5000 requests per hour.
+
+### Canvas API Issues
+
+Make sure your Canvas API key has the necessary permissions to read and update pages in the course you're targeting.
+
+## Future Enhancements
+
+- Support for private GitHub repositories
+- Desktop application using Electron
+- Support for other LMS platforms beyond Canvas
 
 ### `npm run eject`
 

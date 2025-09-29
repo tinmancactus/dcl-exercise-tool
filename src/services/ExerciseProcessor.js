@@ -7,6 +7,15 @@ import MetadataParser from './MetadataParser';
  */
 class ExerciseProcessor {
   /**
+   * Constructor for ExerciseProcessor
+   */
+  constructor() {
+    // Initialize state
+    this.config = null;
+    this.courseId = null; // Will be extracted from Canvas URL
+  }
+  
+  /**
    * Initialize the processor with configuration
    * @param {Object} config - Configuration object
    * @param {string} config.canvasApiKey - Canvas API key
@@ -17,10 +26,58 @@ class ExerciseProcessor {
   initialize(config) {
     this.config = config;
     
+    // Extract course ID from Canvas URL
+    this.courseId = this.extractCourseId(config.courseUrl);
+    if (!this.courseId) {
+      throw new Error('Invalid Canvas URL: Could not extract course ID');
+    }
+    
     // Initialize Canvas service
-    CanvasService.initialize(config.canvasApiKey, config.courseUrl);
+    CanvasService.initialize(
+      config.canvasApiKey, 
+      config.courseUrl
+    );
   }
   
+  /**
+   * Extract course ID from Canvas URL
+   * @param {string} url - Canvas course URL
+   * @returns {string|null} Extracted course ID or null if not found
+   */
+  extractCourseId(url) {
+    try {
+      const parsedUrl = new URL(url);
+      
+      // Extract the course ID from the path
+      const pathMatch = parsedUrl.pathname.match(/\/courses\/(\d+)/);
+      if (!pathMatch) {
+        return null;
+      }
+      
+      return pathMatch[1];
+    } catch (error) {
+      return null;
+    }
+  }
+  
+  /**
+   * Construct a URL to a Canvas page
+   * @param {string} courseId - Canvas course ID
+   * @param {string} pageSlug - Canvas page slug
+   * @returns {string} Full Canvas page URL
+   */
+  constructCanvasPageUrl(courseId, pageSlug) {
+    if (!courseId || !pageSlug) return null;
+    
+    // Use the base URL from the Canvas URL in the config
+    try {
+      const parsedUrl = new URL(this.config.courseUrl);
+      return `${parsedUrl.protocol}//${parsedUrl.host}/courses/${courseId}/pages/${pageSlug}`;
+    } catch (error) {
+      return null;
+    }
+  }
+
   /**
    * Process all Python files in the selected directory
    * @param {Function} onProgress - Callback for progress updates
@@ -110,40 +167,116 @@ class ExerciseProcessor {
   }
   
   /**
+   * Validate metadata object has required fields and valid types
+   * @param {Object} metadata - The metadata object to validate
+   */
+  validateMetadata(metadata) {
+    if (!metadata) {
+      throw new Error('Metadata is missing');
+    }
+    
+    // Check for required fields
+    const requiredFields = [
+      { name: 'page', type: 'string' },
+      { name: 'placement', type: 'string' }
+    ];
+    
+    // Optional fields to validate if present
+    const optionalFields = [
+      { name: 'course', type: 'number|string' } // Now optional, used for administrative purposes only
+    ];
+    
+    // Check required fields
+    for (const field of requiredFields) {
+      if (metadata[field.name] === undefined || metadata[field.name] === null) {
+        throw new Error(`Required metadata field '${field.name}' is missing`);
+      }
+      
+      // Type checking for required fields
+      if (field.type === 'number|string') {
+        if (typeof metadata[field.name] !== 'number' && typeof metadata[field.name] !== 'string') {
+          throw new Error(`Metadata field '${field.name}' should be a number or string`);
+        }
+      } else if (typeof metadata[field.name] !== field.type) {
+        throw new Error(`Metadata field '${field.name}' should be a ${field.type}`);
+      }
+    }
+    
+    // Check optional fields if present
+    for (const field of optionalFields) {
+      if (metadata[field.name] !== undefined && metadata[field.name] !== null) {
+        // Type checking for optional fields
+        if (field.type === 'number|string') {
+          if (typeof metadata[field.name] !== 'number' && typeof metadata[field.name] !== 'string') {
+            throw new Error(`Optional metadata field '${field.name}' should be a number or string`);
+          }
+        } else if (typeof metadata[field.name] !== field.type) {
+          throw new Error(`Optional metadata field '${field.name}' should be a ${field.type}`);
+        }
+      }
+    }
+    
+    return true;
+  }
+  
+  /**
    * Process a single Python file
    * @param {string} filePath - Path to the Python file in the GitHub repo
    * @returns {Promise<Object>} Result of the processing
    */
   async processSingleFile(filePath) {
-    // Get the file content from GitHub
-    const fileContent = await GitHubService.getFileContent(
-      this.config.githubRepoUrl,
-      filePath
-    );
-    
-    // Parse the file content
-    const { metadata, code } = MetadataParser.processPythonFile(fileContent);
-    
-    // Get the Canvas page
-    const page = await CanvasService.getPage(metadata.page);
-    
-    // Generate the DCL embed code
-    const dclEmbed = CanvasService.generateDclEmbed(code);
-    
-    // Update the page content
-    const updatedContent = CanvasService.insertContentAtPlaceholder(
-      page.body,
-      metadata.placement,
-      dclEmbed
-    );
-    
-    // Update the page
-    await CanvasService.updatePage(metadata.page, updatedContent);
-    
-    return {
-      page: metadata.page,
-      placement: metadata.placement
-    };
+    try {
+      // Get the file content from GitHub
+      const fileContent = await GitHubService.getFileContent(
+        this.config.githubRepoUrl,
+        filePath
+      );
+      
+      // Parse the file content
+      const { metadata, code } = MetadataParser.processPythonFile(fileContent);
+      
+      // Validate metadata
+      this.validateMetadata(metadata);
+      
+      // Get the Canvas page
+      const page = await CanvasService.getPage(metadata.page);
+      
+      // Construct the Canvas page URL using the course ID from the Canvas URL
+      const canvasPageUrl = this.constructCanvasPageUrl(this.courseId, metadata.page);
+      
+      // Generate the DCL embed code
+      const dclEmbed = CanvasService.generateDclEmbed(code);
+      
+      // Update the page content
+      let updatedContent;
+      try {
+        updatedContent = CanvasService.insertContentAtPlaceholder(
+          page.body,
+          metadata.placement,
+          dclEmbed
+        );
+      } catch (placeholderError) {
+        throw new Error(`Placement '${metadata.placement}' not found in page '${metadata.page}': ${placeholderError.message}`);
+      }
+      
+      // Update the page
+      const updatedPage = await CanvasService.updatePage(metadata.page, updatedContent);
+      
+      return {
+        page: metadata.page,
+        title: page.title,
+        placement: metadata.placement,
+        updated: updatedPage.updated_at,
+        canvasPageUrl: canvasPageUrl,
+        placementDetails: `Placeholder with identifier '${metadata.placement}' was updated`
+      };
+    } catch (error) {
+      // Enhance error with file information
+      const enhancedError = new Error(`Error processing '${filePath}': ${error.message}`);
+      enhancedError.originalError = error;
+      enhancedError.filePath = filePath;
+      throw enhancedError;
+    }
   }
 }
 

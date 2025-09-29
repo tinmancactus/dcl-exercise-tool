@@ -16,8 +16,11 @@ import {
   StatNumber,
   StatGroup,
   HStack,
-  Icon
+  Icon,
+  Link,
+  Tooltip
 } from '@chakra-ui/react';
+import { FaExternalLinkAlt } from 'react-icons/fa';
 
 const ResultsReport = ({ results, onStartOver }) => {
   // If no results are provided yet, show a loading state
@@ -81,7 +84,7 @@ const ResultsReport = ({ results, onStartOver }) => {
               <Tr>
                 <Th>File</Th>
                 <Th>Status</Th>
-                <Th>Details</Th>
+                <Th width="50%">Details</Th>
               </Tr>
             </Thead>
             <Tbody>
@@ -103,7 +106,28 @@ const ResultsReport = ({ results, onStartOver }) => {
                       )}
                     </HStack>
                   </Td>
-                  <Td>{result.error || 'Exercise embedded successfully'}</Td>
+                  <Td>
+                    {result.status === 'success' ? (
+                      <VStack align="start" spacing={1}>
+                        <HStack>
+                          <Text fontWeight="bold">Page:</Text>
+                          <Text>{result.title || result.page}</Text>
+                          {result.canvasPageUrl && (
+                            <Tooltip label="Open Canvas page in new tab">
+                              <Link href={result.canvasPageUrl} isExternal color="blue.500">
+                                <Icon as={FaExternalLinkAlt} ml={1} boxSize={3} />
+                              </Link>
+                            </Tooltip>
+                          )}
+                        </HStack>
+                        {result.placementDetails && (
+                          <Text fontSize="sm" color="gray.600">{result.placementDetails}</Text>
+                        )}
+                      </VStack>
+                    ) : (
+                      <Text color="red.500">{result.error}</Text>
+                    )}
+                  </Td>
                 </Tr>
               ))}
             </Tbody>

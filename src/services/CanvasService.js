@@ -1,13 +1,17 @@
 import axios from 'axios';
 
+// Use local API instead of direct Canvas API calls
+
 /**
  * Service for interacting with the Canvas LMS API
  */
 class CanvasService {
   constructor() {
-    this.apiClient = null;
-    this.baseUrl = '';
-    this.courseId = '';
+    this.apiClient = axios.create({
+      baseURL: '/api' // Will be proxied to our backend in development
+    });
+    this.apiKey = '';
+    this.courseUrl = '';
   }
   
   /**
@@ -16,64 +20,15 @@ class CanvasService {
    * @param {string} courseUrl - URL of the Canvas course
    */
   initialize(apiKey, courseUrl) {
-    // Extract base URL and course ID from the course URL
-    const { baseUrl, courseId } = this.parseCourseUrl(courseUrl);
-    
-    this.baseUrl = baseUrl;
-    this.courseId = courseId;
-    
-    // Create axios instance with authorization header
-    this.apiClient = axios.create({
-      baseURL: `${baseUrl}/api/v1`,
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    // Add response interceptor for error handling
-    this.apiClient.interceptors.response.use(
-      response => response,
-      error => {
-        if (error.response) {
-          // Format API error message
-          const status = error.response.status;
-          let message = `Canvas API error (${status})`;
-          
-          if (error.response.data && error.response.data.errors) {
-            message += `: ${error.response.data.errors.map(e => e.message).join(', ')}`;
-          }
-          
-          error.message = message;
-        }
-        return Promise.reject(error);
-      }
-    );
+    // Store these values for use in subsequent API calls
+    this.apiKey = apiKey;
+    this.courseUrl = courseUrl;
   }
   
   /**
-   * Extract base URL and course ID from a Canvas course URL
-   * @param {string} url - Canvas course URL
-   * @returns {Object} An object containing baseUrl and courseId
+   * No longer need to parse the course URL here - backend will handle it
+   * @private
    */
-  parseCourseUrl(url) {
-    try {
-      const parsedUrl = new URL(url);
-      
-      // Extract the course ID from the path
-      const pathMatch = parsedUrl.pathname.match(/\/courses\/(\d+)/);
-      if (!pathMatch) {
-        throw new Error('Could not find course ID in the URL');
-      }
-      
-      const courseId = pathMatch[1];
-      const baseUrl = `${parsedUrl.protocol}//${parsedUrl.hostname}`;
-      
-      return { baseUrl, courseId };
-    } catch (error) {
-      throw new Error(`Failed to parse Canvas URL: ${error.message}`);
-    }
-  }
   
   /**
    * Validate API connection by getting course information
@@ -81,10 +36,17 @@ class CanvasService {
    */
   async validateConnection() {
     try {
-      const response = await this.apiClient.get(`/courses/${this.courseId}`);
-      return response.data;
+      const response = await this.apiClient.get('/canvas/validate', {
+        params: {
+          apiKey: this.apiKey,
+          courseUrl: this.courseUrl
+        }
+      });
+      
+      return response.data.data;
     } catch (error) {
-      throw new Error(`Failed to connect to Canvas: ${error.message}`);
+      const errorMsg = error.response?.data?.error || error.message;
+      throw new Error(`Failed to connect to Canvas: ${errorMsg}`);
     }
   }
   
@@ -95,13 +57,21 @@ class CanvasService {
    */
   async getPage(pageUrl) {
     try {
-      const response = await this.apiClient.get(`/courses/${this.courseId}/pages/${pageUrl}`);
-      return response.data;
+      const response = await this.apiClient.get('/canvas/pages', {
+        params: {
+          apiKey: this.apiKey,
+          courseUrl: this.courseUrl,
+          pageUrl
+        }
+      });
+      
+      return response.data.data;
     } catch (error) {
-      if (error.response && error.response.status === 404) {
+      const errorMsg = error.response?.data?.error || error.message;
+      if (error.response?.status === 404) {
         throw new Error(`Page not found: ${pageUrl}`);
       }
-      throw new Error(`Failed to get page: ${error.message}`);
+      throw new Error(`Failed to get page: ${errorMsg}`);
     }
   }
   
@@ -113,14 +83,17 @@ class CanvasService {
    */
   async updatePage(pageUrl, body) {
     try {
-      const response = await this.apiClient.put(`/courses/${this.courseId}/pages/${pageUrl}`, {
-        wiki_page: {
-          body
-        }
+      const response = await this.apiClient.put('/canvas/pages', {
+        apiKey: this.apiKey,
+        courseUrl: this.courseUrl,
+        pageUrl,
+        body
       });
-      return response.data;
+      
+      return response.data.data;
     } catch (error) {
-      throw new Error(`Failed to update page: ${error.message}`);
+      const errorMsg = error.response?.data?.error || error.message;
+      throw new Error(`Failed to update page: ${errorMsg}`);
     }
   }
   
@@ -132,22 +105,36 @@ class CanvasService {
    * @returns {string} The updated HTML
    */
   insertContentAtPlaceholder(html, placement, content) {
-    // Create a temporary DOM element to parse the HTML
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = html;
-    
-    // Find the placeholder
-    const placeholder = tempDiv.querySelector(`div[data-code-placement="${placement}"]`);
-    
-    if (!placeholder) {
-      throw new Error(`Placeholder with data-code-placement="${placement}" not found`);
+    try {
+      // Create a temporary DOM element to parse the HTML
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = html;
+      
+      // Find the placeholder
+      const placeholder = tempDiv.querySelector(`div[data-code-placement="${placement}"]`);
+      
+      if (!placeholder) {
+        // Handle the case where the placeholder isn't found by using a regex approach as fallback
+        const placeholderRegex = new RegExp(`<div[^>]*data-code-placement=["']${placement}["'][^>]*>.*?</div>`, 'i');
+        const match = html.match(placeholderRegex);
+        
+        if (!match) {
+          throw new Error(`Placeholder with data-code-placement="${placement}" not found`);
+        }
+        
+        // Replace via string manipulation if DOM method fails
+        return html.replace(match[0], `<div data-code-placement="${placement}">${content}</div>`);
+      }
+      
+      // Replace the content of the placeholder
+      placeholder.innerHTML = content;
+      
+      // Return the updated HTML
+      return tempDiv.innerHTML;
+    } catch (error) {
+      console.error('Error processing HTML:', error);
+      throw new Error(`Failed to insert content at placeholder: ${error.message}`);
     }
-    
-    // Replace the content of the placeholder
-    placeholder.innerHTML = content;
-    
-    // Return the updated HTML
-    return tempDiv.innerHTML;
   }
   
   /**

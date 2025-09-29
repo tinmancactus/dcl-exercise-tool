@@ -1,11 +1,13 @@
-import { Octokit } from '@octokit/rest';
+import axios from 'axios';
 
 /**
- * Service for interacting with the GitHub API
+ * Service for interacting with the GitHub API via our backend proxy
  */
 class GitHubService {
   constructor() {
-    this.octokit = new Octokit();
+    this.apiClient = axios.create({
+      baseURL: '/api/github'
+    });
   }
   
   /**
@@ -13,23 +15,7 @@ class GitHubService {
    * @param {string} url - GitHub repository URL
    * @returns {Object} An object containing owner and repo
    */
-  parseRepoUrl(url) {
-    try {
-      const parsedUrl = new URL(url);
-      const pathParts = parsedUrl.pathname.split('/').filter(Boolean);
-      
-      if (pathParts.length < 2) {
-        throw new Error('Invalid GitHub repository URL');
-      }
-      
-      return {
-        owner: pathParts[0],
-        repo: pathParts[1]
-      };
-    } catch (error) {
-      throw new Error(`Failed to parse GitHub URL: ${error.message}`);
-    }
-  }
+  // No longer needed as the backend handles URL parsing
   
   /**
    * Get contents of a repository directory
@@ -39,20 +25,20 @@ class GitHubService {
    */
   async getContents(repoUrl, path = '') {
     try {
-      const { owner, repo } = this.parseRepoUrl(repoUrl);
-      
-      const response = await this.octokit.repos.getContent({
-        owner,
-        repo,
-        path
+      const response = await this.apiClient.get('/contents', {
+        params: {
+          repoUrl,
+          path
+        }
       });
       
-      return Array.isArray(response.data) ? response.data : [response.data];
+      return Array.isArray(response.data.data) ? response.data.data : [response.data.data];
     } catch (error) {
-      if (error.status === 404) {
+      const errorMsg = error.response?.data?.error || error.message;
+      if (error.response?.status === 404) {
         throw new Error('Repository or path not found');
       }
-      throw new Error(`GitHub API error: ${error.message}`);
+      throw new Error(`GitHub API error: ${errorMsg}`);
     }
   }
   
@@ -64,26 +50,20 @@ class GitHubService {
    */
   async getFileContent(repoUrl, filePath) {
     try {
-      const { owner, repo } = this.parseRepoUrl(repoUrl);
-      
-      const response = await this.octokit.repos.getContent({
-        owner,
-        repo,
-        path: filePath
+      const response = await this.apiClient.get('/content', {
+        params: {
+          repoUrl,
+          path: filePath
+        }
       });
       
-      if (Array.isArray(response.data)) {
-        throw new Error('Expected a file but got a directory');
-      }
-      
-      // GitHub API returns content as base64
-      const content = Buffer.from(response.data.content, 'base64').toString('utf8');
-      return content;
+      return response.data.data.content;
     } catch (error) {
-      if (error.status === 404) {
+      const errorMsg = error.response?.data?.error || error.message;
+      if (error.response?.status === 404) {
         throw new Error(`File not found: ${filePath}`);
       }
-      throw new Error(`GitHub API error: ${error.message}`);
+      throw new Error(`GitHub API error: ${errorMsg}`);
     }
   }
   

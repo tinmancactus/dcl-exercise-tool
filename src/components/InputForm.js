@@ -16,7 +16,8 @@ import {
   InputGroup,
   InputRightElement,
   IconButton,
-  Tooltip
+  Tooltip,
+  Switch
 } from '@chakra-ui/react';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 
@@ -149,6 +150,7 @@ const InputForm = ({ onSubmit }) => {
             The URL of the GitHub repository containing your Python exercise files.
           </FormHelperText>
         </FormControl>
+
         
         <Button type="submit" colorScheme="blue" size="lg" alignSelf="flex-start">
           Next
