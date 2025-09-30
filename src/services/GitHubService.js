@@ -8,6 +8,39 @@ class GitHubService {
     this.apiClient = axios.create({
       baseURL: '/api/github'
     });
+    this.token = null; // GitHub personal access token
+  }
+  
+  /**
+   * Set authentication token for GitHub API requests
+   * @param {string} token - GitHub personal access token
+   */
+  setAuthToken(token) {
+    this.token = token;
+  }
+  
+  /**
+   * Validate a GitHub token by checking if it's valid
+   * @param {string} token - GitHub personal access token to validate
+   * @returns {Promise<Object>} Validation result with user info if valid
+   */
+  async validateToken(token) {
+    try {
+      const response = await this.apiClient.get('/validate-token', {
+        params: { token }
+      });
+      
+      return {
+        valid: true,
+        user: response.data.data,
+        message: 'Token is valid'
+      };
+    } catch (error) {
+      return {
+        valid: false,
+        message: error.response?.data?.error || 'Failed to validate token'
+      };
+    }
   }
   
   /**
@@ -28,7 +61,8 @@ class GitHubService {
       const response = await this.apiClient.get('/contents', {
         params: {
           repoUrl,
-          path
+          path,
+          token: this.token
         }
       });
       
@@ -53,7 +87,8 @@ class GitHubService {
       const response = await this.apiClient.get('/content', {
         params: {
           repoUrl,
-          path: filePath
+          path: filePath,
+          token: this.token
         }
       });
       

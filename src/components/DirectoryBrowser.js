@@ -33,7 +33,13 @@ const DirectoryBrowser = ({ githubRepoUrl, onDirectorySelect }) => {
   const bgColor = useColorModeValue('gray.50', 'gray.700');
   const hoverBgColor = useColorModeValue('blue.50', 'blue.900');
   
+  // Check if using authentication
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  
   useEffect(() => {
+    // Check if the GitHubService has a token set
+    setIsAuthenticated(!!GitHubService.token);
+    
     if (githubRepoUrl) {
       loadDirectoryContents(currentPath);
     }
@@ -79,13 +85,23 @@ const DirectoryBrowser = ({ githubRepoUrl, onDirectorySelect }) => {
   const handleSelectDirectory = () => {
     onDirectorySelect(currentPath);
   };
-  
+
   return (
     <Box width="100%">
       <VStack spacing={6} align="stretch">
         <Heading as="h3" size="lg">
-          Select Directory
+          Select a Directory
         </Heading>
+        
+        {isAuthenticated && (
+          <Alert status="success" variant="subtle">
+            <AlertIcon />
+            <Box>
+              <AlertTitle>Authenticated with GitHub</AlertTitle>
+              <AlertDescription>Using token for API requests. Private repositories are accessible.</AlertDescription>
+            </Box>
+          </Alert>
+        )}
         
         <Text>
           Browse and select the directory containing your Python exercise files.

@@ -1,19 +1,18 @@
 import axios from 'axios';
 
 // Use local API instead of direct Canvas API calls
-
 /**
  * Service for interacting with the Canvas LMS API
  */
 class CanvasService {
   constructor() {
-    this.apiClient = axios.create({
-      baseURL: '/api' // Will be proxied to our backend in development
-    });
-    this.apiKey = '';
-    this.courseUrl = '';
+    this.apiKey = null;
+    this.courseUrl = null;
+    this.courseId = null;
+    this.apiClient = null;
+    this.isInitialized = false;
   }
-  
+
   /**
    * Initialize the Canvas API client with the API key and course URL
    * @param {string} apiKey - Canvas API key
@@ -23,12 +22,21 @@ class CanvasService {
     // Store these values for use in subsequent API calls
     this.apiKey = apiKey;
     this.courseUrl = courseUrl;
+    
+    // Extract course ID from URL
+    const courseIdMatch = courseUrl.match(/courses\/([0-9]+)/);
+    if (!courseIdMatch) {
+      throw new Error('Invalid Canvas URL: Could not extract course ID');
+    }
+    this.courseId = courseIdMatch[1];
+
+    // Set up API client
+    this.apiClient = axios.create({
+      baseURL: '/api'
+    });
+    
+    this.isInitialized = true;
   }
-  
-  /**
-   * No longer need to parse the course URL here - backend will handle it
-   * @private
-   */
   
   /**
    * Validate API connection by getting course information

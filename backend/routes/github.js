@@ -8,7 +8,7 @@ const router = express.Router();
  */
 router.get('/contents', async (req, res) => {
   try {
-    const { repoUrl, path = '' } = req.query;
+    const { repoUrl, path = '', token } = req.query;
     
     if (!repoUrl) {
       return res.status(400).json({
@@ -22,7 +22,11 @@ router.get('/contents', async (req, res) => {
     
     // Prepare headers with auth token if available
     const headers = {};
-    if (process.env.GITHUB_TOKEN) {
+    if (token) {
+      // Use user-provided token first
+      headers.Authorization = `token ${token}`;
+    } else if (process.env.GITHUB_TOKEN) {
+      // Fall back to server-side token if available
       headers.Authorization = `token ${process.env.GITHUB_TOKEN}`;
     }
     
@@ -49,7 +53,7 @@ router.get('/contents', async (req, res) => {
  */
 router.get('/content', async (req, res) => {
   try {
-    const { repoUrl, path } = req.query;
+    const { repoUrl, path, token } = req.query;
     
     if (!repoUrl || !path) {
       return res.status(400).json({
@@ -63,7 +67,11 @@ router.get('/content', async (req, res) => {
     
     // Prepare headers with auth token if available
     const headers = {};
-    if (process.env.GITHUB_TOKEN) {
+    if (token) {
+      // Use user-provided token first
+      headers.Authorization = `token ${token}`;
+    } else if (process.env.GITHUB_TOKEN) {
+      // Fall back to server-side token if available
       headers.Authorization = `token ${process.env.GITHUB_TOKEN}`;
     }
     
@@ -118,5 +126,57 @@ function parseRepoUrl(url) {
     throw new Error(`Failed to parse GitHub URL: ${error.message}`);
   }
 }
+
+/**
+ * Validate GitHub token
+ * GET /api/github/validate-token
+ */
+router.get('/validate-token', async (req, res) => {
+  try {
+    const { token } = req.query;
+    
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        error: 'Token is required'
+      });
+    }
+    
+    // Set up headers with the token
+    const headers = {
+      'Authorization': `token ${token}`
+    };
+    
+    // Make a request to GitHub API to get user info
+    const response = await axios.get('https://api.github.com/user', { headers });
+    
+    res.json({
+      success: true,
+      data: {
+        username: response.data.login,
+        avatarUrl: response.data.avatar_url,
+        name: response.data.name,
+        valid: true
+      }
+    });
+  } catch (error) {
+    // Check if it's an authentication error
+    if (error.response && error.response.status === 401) {
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid GitHub token',
+        valid: false
+      });
+    }
+    
+    console.error('GitHub API error:', error.message);
+    
+    res.status(error.response?.status || 500).json({
+      success: false,
+      error: error.response?.data?.message || error.message,
+      valid: false
+    });
+  }
+});
 
 module.exports = router;

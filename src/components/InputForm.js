@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -17,16 +17,24 @@ import {
   InputRightElement,
   IconButton,
   Tooltip,
-  Switch
+  Switch,
+  Spinner,
+  Icon
 } from '@chakra-ui/react';
-import { FaEye, FaEyeSlash } from 'react-icons/fa';
+import { FaEye, FaEyeSlash, FaCheck, FaTimes } from 'react-icons/fa';
+import GitHubService from '../services/GitHubService';
 
 const InputForm = ({ onSubmit }) => {
   const [canvasApiKey, setCanvasApiKey] = useState('');
   const [courseUrl, setCourseUrl] = useState('');
   const [githubRepoUrl, setGithubRepoUrl] = useState('');
+  const [githubToken, setGithubToken] = useState('');
   const [error, setError] = useState('');
   const [showApiKey, setShowApiKey] = useState(false);
+  const [showGithubToken, setShowGithubToken] = useState(false);
+  const [tokenStatus, setTokenStatus] = useState(null); // null, valid, invalid
+  const [tokenValidating, setTokenValidating] = useState(false);
+  const [tokenUser, setTokenUser] = useState(null);
   
   const validateInput = () => {
     // Clear previous errors
@@ -72,7 +80,8 @@ const InputForm = ({ onSubmit }) => {
       onSubmit({
         canvasApiKey,
         courseUrl,
-        githubRepoUrl
+        githubRepoUrl,
+        githubToken
       });
     }
   };
@@ -80,6 +89,45 @@ const InputForm = ({ onSubmit }) => {
   const toggleApiKeyVisibility = () => {
     setShowApiKey(!showApiKey);
   };
+  
+  const toggleGithubTokenVisibility = () => {
+    setShowGithubToken(!showGithubToken);
+  };
+  
+  // Validate GitHub token when it changes
+  useEffect(() => {
+    const validateToken = async () => {
+      // Don't validate if token is empty
+      if (!githubToken) {
+        setTokenStatus(null);
+        return;
+      }
+      
+      setTokenValidating(true);
+      
+      try {
+        const result = await GitHubService.validateToken(githubToken);
+        
+        if (result.valid) {
+          setTokenStatus('valid');
+          setTokenUser(result.user);
+        } else {
+          setTokenStatus('invalid');
+          setTokenUser(null);
+        }
+      } catch (error) {
+        setTokenStatus('invalid');
+        setTokenUser(null);
+      } finally {
+        setTokenValidating(false);
+      }
+    };
+    
+    // Use a debounce to avoid too many requests
+    const timeoutId = setTimeout(validateToken, 500);
+    
+    return () => clearTimeout(timeoutId);
+  }, [githubToken]);
   
   return (
     <Box as="form" onSubmit={handleSubmit} width="100%">
@@ -150,7 +198,55 @@ const InputForm = ({ onSubmit }) => {
             The URL of the GitHub repository containing your Python exercise files.
           </FormHelperText>
         </FormControl>
-
+        
+        <FormControl>
+          <FormLabel>GitHub Personal Access Token (Optional)</FormLabel>
+          <InputGroup>
+            <Input
+              type={showGithubToken ? 'text' : 'password'}
+              value={githubToken}
+              onChange={(e) => setGithubToken(e.target.value)}
+              placeholder="Enter GitHub token for private repos"
+              borderColor={tokenStatus === 'valid' ? 'green.500' : tokenStatus === 'invalid' ? 'red.500' : undefined}
+            />
+            <InputRightElement>
+              {tokenValidating ? (
+                <Spinner size="sm" mr={2} />
+              ) : tokenStatus === 'valid' ? (
+                <Icon as={FaCheck} color="green.500" mr={2} />
+              ) : tokenStatus === 'invalid' ? (
+                <Icon as={FaTimes} color="red.500" mr={2} />
+              ) : null}
+              <Tooltip label={showGithubToken ? "Hide Token" : "Show Token"}>
+                <IconButton
+                  aria-label={showGithubToken ? "Hide Token" : "Show Token"}
+                  size="sm"
+                  onClick={toggleGithubTokenVisibility}
+                  icon={showGithubToken ? <FaEyeSlash /> : <FaEye />}
+                />
+              </Tooltip>
+            </InputRightElement>
+          </InputGroup>
+          {tokenStatus === 'valid' && tokenUser ? (
+            <Alert status="success" size="sm" mt={2} py={2}>
+              <AlertIcon />
+              <AlertDescription>
+                Token valid. Authenticated as {tokenUser.name || tokenUser.username}.
+              </AlertDescription>
+            </Alert>
+          ) : tokenStatus === 'invalid' ? (
+            <Alert status="error" size="sm" mt={2} py={2}>
+              <AlertIcon />
+              <AlertDescription>
+                Token validation failed. Please check and try again.
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <FormHelperText>
+              For private repositories or to avoid rate limiting. Create one at GitHub → Settings → Developer Settings → Personal access tokens.
+            </FormHelperText>
+          )}
+        </FormControl>
         
         <Button type="submit" colorScheme="blue" size="lg" alignSelf="flex-start">
           Next

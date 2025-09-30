@@ -1,11 +1,15 @@
 import { Box, ChakraProvider, Container, Heading, Button, HStack, ButtonGroup } from '@chakra-ui/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import InputForm from './components/InputForm';
 import DirectoryBrowser from './components/DirectoryBrowser';
 import ProcessingStatus from './components/ProcessingStatus';
 import ResultsReport from './components/ResultsReport';
+import VerificationStatus from './components/VerificationStatus';
+import VerificationReport from './components/VerificationReport';
 import TestMetadataParser from './components/TestMetadataParser';
 import TestCanvasAPI from './components/TestCanvasAPI';
+import GitHubService from './services/GitHubService';
+import CanvasService from './services/CanvasService';
 
 function App() {
   const [step, setStep] = useState(1);
@@ -15,6 +19,8 @@ function App() {
     githubRepoUrl: ''
   });
   const [selectedDirectory, setSelectedDirectory] = useState('');
+  const [verificationResults, setVerificationResults] = useState(null);
+  const [isVerifying, setIsVerifying] = useState(false);
   const [processingResults, setProcessingResults] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [errors, setErrors] = useState([]);
@@ -22,30 +28,73 @@ function App() {
 
   const handleFormSubmit = (data) => {
     setFormData(data);
+    
+    // If a GitHub token is provided, set it in the GitHubService
+    if (data.githubToken) {
+      GitHubService.setAuthToken(data.githubToken);
+    }
+    
     setStep(2);
   };
 
   const handleDirectorySelect = (directory) => {
     setSelectedDirectory(directory);
     setStep(3);
-    // Start the processing
-    setIsProcessing(true);
-    
-    // Now we'll use the real processor through the ProcessingStatus component
-    // The processing will start in that component once it receives isProcessing=true
+    // Initialize Canvas service first
+    CanvasService.initialize(formData.canvasApiKey, formData.courseUrl);
+    // Start verification
+    setIsVerifying(true);
   };
 
+  const handleVerificationComplete = (results) => {
+    setVerificationResults(results);
+    setIsVerifying(false);
+    setStep(4);
+  };
+  
+  const handleVerifyAgain = () => {
+    setVerificationResults(null);
+    setIsVerifying(true);
+  };
+  
+  const handleProceedToProcessing = () => {
+    setStep(5);
+    setIsProcessing(true);
+  };
+  
   const handleProcessingComplete = (results) => {
     setProcessingResults(results);
     setIsProcessing(false);
-    setStep(4);
+    setStep(6);
   };
 
   const handleStartOver = () => {
     setStep(1);
     setSelectedDirectory('');
+    setVerificationResults(null);
     setProcessingResults(null);
+    setIsVerifying(false);
+    setIsProcessing(false);
     setErrors([]);
+  };
+  
+  const renderCurrentStep = () => {
+    switch (step) {
+      case 1:
+        return <InputForm onSubmit={handleFormSubmit} />;
+      case 2:
+        return <DirectoryBrowser githubRepoUrl={formData.githubRepoUrl} onDirectorySelect={handleDirectorySelect} />;
+      case 3:
+        return <VerificationStatus isVerifying={isVerifying} config={{ ...formData, directoryPath: selectedDirectory }} onComplete={handleVerificationComplete} onAbort={handleStartOver} />;
+      case 4:
+        return <VerificationReport results={verificationResults} onStartOver={handleStartOver} onProceed={handleProceedToProcessing} onVerifyAgain={handleVerifyAgain} isVerifying={isVerifying} />;
+      case 5:
+        return <ProcessingStatus isProcessing={isProcessing} config={{ ...formData, directoryPath: selectedDirectory }} errors={errors} onComplete={handleProcessingComplete} />;
+      case 6:
+        return <ResultsReport results={processingResults} onStartOver={handleStartOver} />;
+      default:
+        return <div>Unknown step</div>;
+    }
   };
 
   return (
@@ -89,33 +138,7 @@ function App() {
           <TestCanvasAPI />
         ) : (
           <>
-            {step === 1 && <InputForm onSubmit={handleFormSubmit} />}
-            
-            {step === 2 && (
-              <DirectoryBrowser 
-                githubRepoUrl={formData.githubRepoUrl}
-                onDirectorySelect={handleDirectorySelect}
-              />
-            )}
-            
-            {step === 3 && (
-              <ProcessingStatus 
-                isProcessing={isProcessing}
-                config={{
-                  ...formData,
-                  directoryPath: selectedDirectory
-                }}
-                errors={errors}
-                onComplete={handleProcessingComplete}
-              />
-            )}
-            
-            {step === 4 && (
-              <ResultsReport 
-                results={processingResults}
-                onStartOver={handleStartOver}
-              />
-            )}
+            {currentView === 'main' && renderCurrentStep()}
           </>
         )}
       </Container>
