@@ -24,7 +24,9 @@ import {
   AccordionIcon,
   Tooltip,
   Flex,
-  Spacer
+  Spacer,
+  UnorderedList,
+  ListItem
 } from '@chakra-ui/react';
 import { FaCheck, FaTimes, FaExclamationTriangle, FaFileAlt, FaInfoCircle } from 'react-icons/fa';
 
@@ -146,10 +148,48 @@ const VerificationReport = ({ results, onStartOver, onProceed, onVerifyAgain, is
                               <Box mt={1} p={2} bg="gray.50" borderRadius="md" fontSize="sm">
                                 <Text fontWeight="bold">Metadata:</Text>
                                 <Text>Page: {check.metadata.page}</Text>
-                                <Text>Placement: {check.metadata.placement}</Text>
+                                {Array.isArray(check.metadata.placement) ? (
+                                  <Box>
+                                    <Text fontWeight="bold">Multiple Placements:</Text>
+                                    <UnorderedList>
+                                      {check.metadata.placement.map((place, i) => (
+                                        <ListItem key={i}>{place}</ListItem>
+                                      ))}
+                                    </UnorderedList>
+                                  </Box>
+                                ) : (
+                                  <Text>Placement: {check.metadata.placement}</Text>
+                                )}
                                 {check.metadata.course && (
                                   <Text>Course (for admin only): {check.metadata.course}</Text>
                                 )}
+                              </Box>
+                            )}
+                            {check.name === 'placeholder_exists' && check.placementDetails && (
+                              <Box mt={1} p={2} bg={check.passed ? "green.50" : "red.50"} borderRadius="md" fontSize="sm">
+                                <Text fontWeight="bold">Placement Details:</Text>
+                                <Table size="sm" variant="simple" mt={1}>
+                                  <Thead>
+                                    <Tr>
+                                      <Th>Placement</Th>
+                                      <Th>Status</Th>
+                                    </Tr>
+                                  </Thead>
+                                  <Tbody>
+                                    {check.placementDetails.map((detail, i) => (
+                                      <Tr key={i}>
+                                        <Td>{detail.placement}</Td>
+                                        <Td>
+                                          {detail.exists ? (
+                                            <Badge colorScheme="green">Found</Badge>
+                                          ) : (
+                                            <Badge colorScheme="red">Missing</Badge>
+                                          )}
+                                        </Td>
+                                      </Tr>
+                                    ))}
+                                  </Tbody>
+                                </Table>
                               </Box>
                             )}
                           </Td>

@@ -192,8 +192,28 @@ class ExerciseProcessor {
         throw new Error(`Required metadata field '${field.name}' is missing`);
       }
       
-      // Type checking for required fields
-      if (field.type === 'number|string') {
+      // Special handling for placement field which can be string or array of strings
+      if (field.name === 'placement') {
+        const placement = metadata[field.name];
+        
+        // Check if it's an array
+        if (Array.isArray(placement)) {
+          // Validate that all items in array are strings
+          const nonStringItems = placement.filter(item => typeof item !== 'string');
+          if (nonStringItems.length > 0) {
+            throw new Error(`All items in 'placement' array must be strings`);
+          }
+          if (placement.length === 0) {
+            throw new Error(`'placement' array cannot be empty`);
+          }
+        } 
+        // Check if it's a string
+        else if (typeof placement !== 'string') {
+          throw new Error(`Metadata field 'placement' should be a string or an array of strings`);
+        }
+      }
+      // Type checking for other required fields
+      else if (field.type === 'number|string') {
         if (typeof metadata[field.name] !== 'number' && typeof metadata[field.name] !== 'string') {
           throw new Error(`Metadata field '${field.name}' should be a number or string`);
         }
@@ -247,16 +267,29 @@ class ExerciseProcessor {
       // Generate the DCL embed code
       const dclEmbed = CanvasService.generateDclEmbed(code);
       
-      // Update the page content
-      let updatedContent;
-      try {
-        updatedContent = CanvasService.insertContentAtPlaceholder(
-          page.body,
-          metadata.placement,
-          dclEmbed
-        );
-      } catch (placeholderError) {
-        throw new Error(`Placement '${metadata.placement}' not found in page '${metadata.page}': ${placeholderError.message}`);
+      // Process placements - could be a single string or array of strings
+      const placements = Array.isArray(metadata.placement) 
+        ? metadata.placement 
+        : [metadata.placement];
+      
+      // Track the placements that were updated
+      const updatedPlacements = [];
+      
+      // Update the page content with each placement
+      let updatedContent = page.body;
+      
+      for (const placement of placements) {
+        try {
+          // Update content with this placement
+          updatedContent = CanvasService.insertContentAtPlaceholder(
+            updatedContent, // Use previously updated content for each iteration
+            placement,
+            dclEmbed
+          );
+          updatedPlacements.push(placement);
+        } catch (placeholderError) {
+          throw new Error(`Placement '${placement}' not found in page '${metadata.page}': ${placeholderError.message}`);
+        }
       }
       
       // Update the page
@@ -268,7 +301,10 @@ class ExerciseProcessor {
         placement: metadata.placement,
         updated: updatedPage.updated_at,
         canvasPageUrl: canvasPageUrl,
-        placementDetails: `Placeholder with identifier '${metadata.placement}' was updated`
+        placementDetails: Array.isArray(metadata.placement)
+          ? `Placeholders updated: ${updatedPlacements.join(', ')}`
+          : `Placeholder with identifier '${metadata.placement}' was updated`,
+        updatedPlacements: updatedPlacements
       };
     } catch (error) {
       // Enhance error with file information

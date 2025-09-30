@@ -166,17 +166,56 @@ class VerificationService {
 
             // Check 4: Placement exists in the page
             try {
-              const placeholderExists = page.body.includes(`data-code-placement="${metadata.placement}"`);
-              checks.push({
-                name: 'placeholder_exists',
-                passed: placeholderExists,
-                message: placeholderExists 
-                  ? `Placeholder '${metadata.placement}' exists in the page`
-                  : `Placeholder '${metadata.placement}' not found in page '${metadata.page}'`
-              });
-
-              if (!placeholderExists) {
-                isValid = false;
+              // Handle multiple placements if it's an array
+              if (Array.isArray(metadata.placement)) {
+                // Check each placement in the array
+                const placementResults = [];
+                let allPlacementsExist = true;
+                
+                for (const placement of metadata.placement) {
+                  const placeholderExists = page.body.includes(`data-code-placement="${placement}"`);
+                  placementResults.push({
+                    placement,
+                    exists: placeholderExists
+                  });
+                  
+                  if (!placeholderExists) {
+                    allPlacementsExist = false;
+                  }
+                }
+                
+                // Create a summary message
+                const existingPlacements = placementResults.filter(r => r.exists).map(r => r.placement);
+                const missingPlacements = placementResults.filter(r => !r.exists).map(r => r.placement);
+                
+                const message = allPlacementsExist
+                  ? `All placements exist in the page: ${existingPlacements.join(', ')}`
+                  : `Missing placements: ${missingPlacements.join(', ')}. Found placements: ${existingPlacements.length > 0 ? existingPlacements.join(', ') : 'none'}`;
+                
+                checks.push({
+                  name: 'placeholder_exists',
+                  passed: allPlacementsExist,
+                  message: message,
+                  placementDetails: placementResults
+                });
+                
+                if (!allPlacementsExist) {
+                  isValid = false;
+                }
+              } else {
+                // Single placement (string)
+                const placeholderExists = page.body.includes(`data-code-placement="${metadata.placement}"`);
+                checks.push({
+                  name: 'placeholder_exists',
+                  passed: placeholderExists,
+                  message: placeholderExists 
+                    ? `Placeholder '${metadata.placement}' exists in the page`
+                    : `Placeholder '${metadata.placement}' not found in page '${metadata.page}'`
+                });
+  
+                if (!placeholderExists) {
+                  isValid = false;
+                }
               }
             } catch (placeholderError) {
               checks.push({

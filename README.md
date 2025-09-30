@@ -83,24 +83,38 @@ Runs just the Node.js backend on port 3001.
 ### `npm run build`
 
 Builds the app for production to the `build` folder.
-
 ## Python File Format
 
 The tool expects Python exercise files to contain a metadata block in the following format:
 
 ```python
-__metadata__ = { 
+__metadata__ = {
     # course is optional and only for administrative purposes
-    page: 'introduction-to-python', 
-    placement: 'datacamp' 
+    page: 'introduction-to-python',
+    placement: 'datacamp'
 }
 
 # Your Python code here...
 ```
 
 - `page`: Canvas page slug/URL (required)
-- `placement`: Value of the `data-code-placement` attribute in the target div on the Canvas page (required)
+- `placement`: Value of the `data-code-placement` attribute in the target div on the Canvas page (required). Can be a single string or an array of strings for multiple placements.
 - `course`: Optional field for administrative purposes, not used by the tool
+
+### Multiple Placements
+
+You can place the same exercise in multiple locations on a Canvas page by specifying an array of placement values:
+
+```python
+__metadata__ = {
+    page: 'introduction-to-python',
+    placement: ["exercise1", "exercise2"]
+}
+
+# Your Python code here...
+```
+
+This will insert the DataCamp Light exercise into both placeholders with `data-code-placement="exercise1"` and `data-code-placement="exercise2"`.
 
 ## Canvas Page Format
 

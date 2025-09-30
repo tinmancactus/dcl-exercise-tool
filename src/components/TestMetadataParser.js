@@ -11,7 +11,8 @@ import {
   AlertIcon,
   AlertTitle,
   AlertDescription,
-  Divider
+  Divider,
+  ButtonGroup
 } from '@chakra-ui/react';
 import MetadataParser from '../services/MetadataParser';
 
@@ -42,6 +43,22 @@ print(f"Hello, {name}! Welcome to {course}.")
 result = 5 + 10
 print(f"5 + 10 = {result}")`);
   
+  const sampleWithMultiplePlacements = 
+`#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+__metadata__ = { 
+    page: 'example-page', 
+    placement: ["example1", "example2"] 
+}
+
+# Sample with multiple placement points
+
+def multiply(a, b):
+    return a * b
+
+print(multiply(5, 3))`;
+  
   const [metadata, setMetadata] = useState(null);
   const [codeWithoutMetadata, setCodeWithoutMetadata] = useState('');
   const [error, setError] = useState('');
@@ -64,6 +81,23 @@ print(f"5 + 10 = {result}")`);
       <Heading as="h1" size="xl" mb={5}>
         Metadata Parser Test
       </Heading>
+      
+      <ButtonGroup mb={4} spacing={4}>
+        <Button 
+          colorScheme="blue" 
+          size="sm" 
+          onClick={() => setPythonCode(pythonCode)}
+        >
+          Single Placement Example
+        </Button>
+        <Button 
+          colorScheme="green" 
+          size="sm" 
+          onClick={() => setPythonCode(sampleWithMultiplePlacements)}
+        >
+          Multiple Placements Example
+        </Button>
+      </ButtonGroup>
       
       <VStack spacing={5} align="stretch">
         <Box>
