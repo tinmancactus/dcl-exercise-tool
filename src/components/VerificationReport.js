@@ -172,6 +172,8 @@ const VerificationReport = ({ results, onStartOver, onProceed, onVerifyAgain, is
                                   <Thead>
                                     <Tr>
                                       <Th>Placement</Th>
+                                      <Th>Element</Th>
+                                      <Th>Type</Th>
                                       <Th>Status</Th>
                                     </Tr>
                                   </Thead>
@@ -179,6 +181,24 @@ const VerificationReport = ({ results, onStartOver, onProceed, onVerifyAgain, is
                                     {check.placementDetails.map((detail, i) => (
                                       <Tr key={i}>
                                         <Td>{detail.placement}</Td>
+                                        <Td>
+                                          {detail.elementType ? (
+                                            <Badge colorScheme={detail.elementType === 'pre' ? 'purple' : 'blue'}>
+                                              &lt;{detail.elementType}&gt;
+                                            </Badge>
+                                          ) : (
+                                            <Text>-</Text>
+                                          )}
+                                        </Td>
+                                        <Td>
+                                          {detail.interactive !== null ? (
+                                            <Badge colorScheme={detail.interactive ? 'green' : 'gray'}>
+                                              {detail.interactive ? 'Interactive' : 'Non-interactive'}
+                                            </Badge>
+                                          ) : (
+                                            <Text>-</Text>
+                                          )}
+                                        </Td>
                                         <Td>
                                           {detail.exists ? (
                                             <Badge colorScheme="green">Found</Badge>

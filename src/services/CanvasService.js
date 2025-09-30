@@ -106,24 +106,69 @@ class CanvasService {
   }
   
   /**
-   * Find the placeholder element in the page HTML and insert content
-   * @param {string} html - The page HTML
-   * @param {string} placement - The data-code-placement value to look for
-   * @param {string} content - The content to insert
-   * @returns {string} The updated HTML
+   * Detect the element type for a placement
+   * @param {string} html - HTML content
+   * @param {string} placement - Value of data-code-placement attribute
+   * @returns {string} Element type ('pre' or 'div')
    */
-  insertContentAtPlaceholder(html, placement, content) {
+  detectPlacementElementType(html, placement) {
     try {
-      // Create a temporary DOM element to parse the HTML
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = html;
       
-      // Find the placeholder
-      const placeholder = tempDiv.querySelector(`div[data-code-placement="${placement}"]`);
+      // Check for pre element first
+      const preElement = tempDiv.querySelector(`pre[data-code-placement="${placement}"]`);
+      if (preElement) {
+        return 'pre';
+      }
+      
+      // Check for div element
+      const divElement = tempDiv.querySelector(`div[data-code-placement="${placement}"]`);
+      if (divElement) {
+        return 'div';
+      }
+      
+      // Fallback to regex if DOM approach doesn't work
+      const preRegex = new RegExp(`<pre[^>]*data-code-placement=["']${placement}["'][^>]*>`, 'i');
+      if (preRegex.test(html)) {
+        return 'pre';
+      }
+      
+      const divRegex = new RegExp(`<div[^>]*data-code-placement=["']${placement}["'][^>]*>`, 'i');
+      if (divRegex.test(html)) {
+        return 'div';
+      }
+      
+      throw new Error(`Placeholder with data-code-placement="${placement}" not found`);
+    } catch (error) {
+      throw new Error(`Failed to detect element type: ${error.message}`);
+    }
+  }
+
+  /**
+   * Insert content at a specific placeholder in HTML
+   * @param {string} html - HTML content
+   * @param {string} placement - Value of data-code-placement attribute
+   * @param {string} content - Content to insert
+   * @param {boolean} isRawCode - If true, insert as raw code (for pre tags)
+   * @returns {string} Updated HTML
+   */
+  insertContentAtPlaceholder(html, placement, content, isRawCode = false) {
+    try {
+      // Use DOMParser if available (browser environment) or jsdom approach for server
+      // For now, we'll use a simpler approach with string manipulation
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = html;
+      
+      // Determine which element type to look for
+      const elementType = this.detectPlacementElementType(html, placement);
+      
+      // Find the placeholder with the correct element type
+      const placeholder = tempDiv.querySelector(`${elementType}[data-code-placement="${placement}"]`);
       
       if (!placeholder) {
         // Handle the case where the placeholder isn't found by using a regex approach as fallback
-        const placeholderRegex = new RegExp(`<div[^>]*data-code-placement=["']${placement}["'][^>]*>.*?</div>`, 'i');
+        const placeholderRegex = new RegExp(`<${elementType}[^>]*data-code-placement=["']${placement}["'][^>]*>.*?</${elementType}>`, 'is');
         const match = html.match(placeholderRegex);
         
         if (!match) {
@@ -131,11 +176,23 @@ class CanvasService {
         }
         
         // Replace via string manipulation if DOM method fails
-        return html.replace(match[0], `<div data-code-placement="${placement}">${content}</div>`);
+        if (elementType === 'pre' || isRawCode) {
+          // For pre elements, escape HTML and use textContent
+          const escapedContent = this.escapeHtml(content);
+          return html.replace(match[0], `<${elementType} data-code-placement="${placement}">${escapedContent}</${elementType}>`);
+        } else {
+          return html.replace(match[0], `<${elementType} data-code-placement="${placement}">${content}</${elementType}>`);
+        }
       }
       
       // Replace the content of the placeholder
-      placeholder.innerHTML = content;
+      if (elementType === 'pre' || isRawCode) {
+        // For pre elements, use textContent to preserve formatting and avoid HTML interpretation
+        placeholder.textContent = content;
+      } else {
+        // For div elements, use innerHTML for DCL embed
+        placeholder.innerHTML = content;
+      }
       
       // Return the updated HTML
       return tempDiv.innerHTML;
@@ -143,6 +200,22 @@ class CanvasService {
       console.error('Error processing HTML:', error);
       throw new Error(`Failed to insert content at placeholder: ${error.message}`);
     }
+  }
+  
+  /**
+   * Escape HTML special characters
+   * @param {string} text - Text to escape
+   * @returns {string} Escaped text
+   */
+  escapeHtml(text) {
+    const map = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, m => map[m]);
   }
   
   /**

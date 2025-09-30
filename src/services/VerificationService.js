@@ -174,9 +174,26 @@ class VerificationService {
                 
                 for (const placement of metadata.placement) {
                   const placeholderExists = page.body.includes(`data-code-placement="${placement}"`);
+                  
+                  // Detect element type if placeholder exists
+                  let elementType = null;
+                  let isInteractive = null;
+                  
+                  if (placeholderExists) {
+                    try {
+                      elementType = CanvasService.detectPlacementElementType(page.body, placement);
+                      isInteractive = elementType === 'div';
+                    } catch (e) {
+                      // If detection fails, just note it exists
+                      elementType = 'unknown';
+                    }
+                  }
+                  
                   placementResults.push({
                     placement,
-                    exists: placeholderExists
+                    exists: placeholderExists,
+                    elementType,
+                    interactive: isInteractive
                   });
                   
                   if (!placeholderExists) {
@@ -185,12 +202,16 @@ class VerificationService {
                 }
                 
                 // Create a summary message
-                const existingPlacements = placementResults.filter(r => r.exists).map(r => r.placement);
+                const existingPlacements = placementResults.filter(r => r.exists);
                 const missingPlacements = placementResults.filter(r => !r.exists).map(r => r.placement);
                 
+                const placementSummary = existingPlacements.map(r => 
+                  `${r.placement} (<${r.elementType}>, ${r.interactive ? 'interactive' : 'non-interactive'})`
+                ).join(', ');
+                
                 const message = allPlacementsExist
-                  ? `All placements exist in the page: ${existingPlacements.join(', ')}`
-                  : `Missing placements: ${missingPlacements.join(', ')}. Found placements: ${existingPlacements.length > 0 ? existingPlacements.join(', ') : 'none'}`;
+                  ? `All placements exist in the page: ${placementSummary}`
+                  : `Missing placements: ${missingPlacements.join(', ')}. Found placements: ${existingPlacements.length > 0 ? placementSummary : 'none'}`;
                 
                 checks.push({
                   name: 'placeholder_exists',
@@ -205,12 +226,28 @@ class VerificationService {
               } else {
                 // Single placement (string)
                 const placeholderExists = page.body.includes(`data-code-placement="${metadata.placement}"`);
+                
+                // Detect element type if placeholder exists
+                let elementType = null;
+                let isInteractive = null;
+                
+                if (placeholderExists) {
+                  try {
+                    elementType = CanvasService.detectPlacementElementType(page.body, metadata.placement);
+                    isInteractive = elementType === 'div';
+                  } catch (e) {
+                    elementType = 'unknown';
+                  }
+                }
+                
                 checks.push({
                   name: 'placeholder_exists',
                   passed: placeholderExists,
                   message: placeholderExists 
-                    ? `Placeholder '${metadata.placement}' exists in the page`
-                    : `Placeholder '${metadata.placement}' not found in page '${metadata.page}'`
+                    ? `Placeholder '${metadata.placement}' exists (<${elementType}>, ${isInteractive ? 'interactive' : 'non-interactive'})`
+                    : `Placeholder '${metadata.placement}' not found in page '${metadata.page}'`,
+                  elementType,
+                  interactive: isInteractive
                 });
   
                 if (!placeholderExists) {

@@ -118,13 +118,27 @@ This will insert the DataCamp Light exercise into both placeholders with `data-c
 
 ## Canvas Page Format
 
-The tool looks for a div with a specific `data-code-placement` attribute in the Canvas page HTML:
+The tool looks for elements with a specific `data-code-placement` attribute in the Canvas page HTML. The tool supports two types of placements:
+
+### Interactive Placements (DataCamp Light)
+
+Use a `<div>` element for interactive DataCamp Light exercises:
 
 ```html
 <div data-code-placement="datacamp"></div>
 ```
 
-The DataCamp Light exercise will be inserted into this div.
+The DataCamp Light exercise will be inserted into this div, allowing students to run and modify the code.
+
+### Non-Interactive Placements (Raw Code Display)
+
+Use a `<pre>` element for displaying raw code without interactivity:
+
+```html
+<pre data-code-placement="example"></pre>
+```
+
+The raw Python code (without the metadata block) will be inserted into this pre element for display purposes only.
 
 ## Troubleshooting
 

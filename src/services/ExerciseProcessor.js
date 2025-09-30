@@ -264,15 +264,12 @@ class ExerciseProcessor {
       // Construct the Canvas page URL using the course ID from the Canvas URL
       const canvasPageUrl = this.constructCanvasPageUrl(this.courseId, metadata.page);
       
-      // Generate the DCL embed code
-      const dclEmbed = CanvasService.generateDclEmbed(code);
-      
       // Process placements - could be a single string or array of strings
       const placements = Array.isArray(metadata.placement) 
         ? metadata.placement 
         : [metadata.placement];
       
-      // Track the placements that were updated
+      // Track the placements that were updated with their types
       const updatedPlacements = [];
       
       // Update the page content with each placement
@@ -280,13 +277,36 @@ class ExerciseProcessor {
       
       for (const placement of placements) {
         try {
+          // Detect the element type for this placement
+          const elementType = CanvasService.detectPlacementElementType(updatedContent, placement);
+          
+          // Determine what content to insert based on element type
+          let contentToInsert;
+          let isInteractive;
+          
+          if (elementType === 'pre') {
+            // For pre elements, use raw code (non-interactive)
+            contentToInsert = code;
+            isInteractive = false;
+          } else {
+            // For div elements, generate DCL embed (interactive)
+            contentToInsert = CanvasService.generateDclEmbed(code);
+            isInteractive = true;
+          }
+          
           // Update content with this placement
           updatedContent = CanvasService.insertContentAtPlaceholder(
             updatedContent, // Use previously updated content for each iteration
             placement,
-            dclEmbed
+            contentToInsert,
+            elementType === 'pre' // isRawCode flag
           );
-          updatedPlacements.push(placement);
+          
+          updatedPlacements.push({
+            name: placement,
+            type: elementType,
+            interactive: isInteractive
+          });
         } catch (placeholderError) {
           throw new Error(`Placement '${placement}' not found in page '${metadata.page}': ${placeholderError.message}`);
         }
@@ -295,6 +315,11 @@ class ExerciseProcessor {
       // Update the page
       const updatedPage = await CanvasService.updatePage(metadata.page, updatedContent);
       
+      // Generate a detailed placement description
+      const placementDescriptions = updatedPlacements.map(p => 
+        `${p.name} (${p.interactive ? 'interactive' : 'non-interactive'})`
+      );
+      
       return {
         page: metadata.page,
         title: page.title,
@@ -302,8 +327,8 @@ class ExerciseProcessor {
         updated: updatedPage.updated_at,
         canvasPageUrl: canvasPageUrl,
         placementDetails: Array.isArray(metadata.placement)
-          ? `Placeholders updated: ${updatedPlacements.join(', ')}`
-          : `Placeholder with identifier '${metadata.placement}' was updated`,
+          ? `Placeholders updated: ${placementDescriptions.join(', ')}`
+          : `Placeholder '${updatedPlacements[0].name}' was updated (${updatedPlacements[0].interactive ? 'interactive' : 'non-interactive'})`,
         updatedPlacements: updatedPlacements
       };
     } catch (error) {
