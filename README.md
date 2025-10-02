@@ -77,27 +77,24 @@ Runs both the frontend and backend servers concurrently.
 Runs just the React frontend on port 3000.
 
 ### `npm run start:backend`
-
 Runs just the Node.js backend on port 3001.
 
 ### `npm run build`
 
 Builds the app for production to the `build` folder.
-## Python File Format
+## Python Exercise File Format
 
-The tool expects Python exercise files to contain a metadata block in the following format:
+Each Python exercise file must include a special `__metadata__` block at the top that specifies where the exercise should be placed in Canvas. The metadata uses standard Python dictionary syntax with quoted string keys:
 
 ```python
 __metadata__ = {
-    # course is optional and only for administrative purposes
-    page: 'introduction-to-python',
-    placement: 'datacamp'
+    "course": "Your Course Name",
+    "page": "page-url-slug",
+    "placement": "datacamp"
 }
 
 # Your Python code here...
 ```
-
-- `page`: Canvas page slug/URL (required)
 - `placement`: Value of the `data-code-placement` attribute in the target div on the Canvas page (required). Can be a single string or an array of strings for multiple placements.
 - `course`: Optional field for administrative purposes, not used by the tool
 
@@ -107,8 +104,8 @@ You can place the same exercise in multiple locations on a Canvas page by specif
 
 ```python
 __metadata__ = {
-    page: 'introduction-to-python',
-    placement: ["exercise1", "exercise2"]
+    "page": "introduction-to-python",
+    "placement": ["exercise1", "exercise2"]
 }
 
 # Your Python code here...

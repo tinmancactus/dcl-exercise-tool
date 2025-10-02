@@ -118,16 +118,42 @@ class MetadataParser {
       // End of content
       if (i >= content.length) break;
       
-      // Find the key (read until ':')
+      // Find the key - it should be a quoted string
       let key = '';
-      while (i < content.length && content[i] !== ':') {
-        if (content[i] !== ' ' && content[i] !== '\n' && content[i] !== '\r' && content[i] !== '\t') {
+      
+      // Check if key starts with a quote
+      if (content[i] === '"' || content[i] === "'") {
+        const quoteChar = content[i];
+        i++; // Skip opening quote
+        
+        // Read until closing quote
+        while (i < content.length && content[i] !== quoteChar) {
           key += content[i];
+          i++;
         }
+        
+        if (i < content.length) {
+          i++; // Skip closing quote
+        }
+      } else {
+        // Fallback: support unquoted keys for backward compatibility
+        while (i < content.length && content[i] !== ':') {
+          if (content[i] !== ' ' && content[i] !== '\n' && content[i] !== '\r' && content[i] !== '\t') {
+            key += content[i];
+          }
+          i++;
+        }
+      }
+      
+      if (!key) break;
+      
+      // Skip whitespace after key
+      while (i < content.length && (content[i] === ' ' || content[i] === '\t')) {
         i++;
       }
       
-      if (!key || i >= content.length) break;
+      // Expect ':' after key
+      if (i >= content.length || content[i] !== ':') break;
       
       // Skip the ':'
       i++;

@@ -28,9 +28,7 @@ function App() {
   const [currentView, setCurrentView] = useState('main'); // 'main', 'metadata', 'canvas'
 
   const handleFormSubmit = (data) => {
-    console.log('handleFormSubmit received data:', data);
     setFormData(data);
-    console.log('formData after setState:', data);
     
     // If a GitHub token is provided, set it in the GitHubService
     if (data.githubToken) {

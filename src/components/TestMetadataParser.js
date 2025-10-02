@@ -22,8 +22,8 @@ const TestMetadataParser = () => {
 # -*- coding: utf-8 -*-
 
 __metadata__ = { 
-    page: 'introduction-to-python', 
-    placement: 'datacamp' 
+    "page": "introduction-to-python", 
+    "placement": "datacamp" 
 }
 
 # Introduction to Python
@@ -48,8 +48,8 @@ print(f"5 + 10 = {result}")`);
 # -*- coding: utf-8 -*-
 
 __metadata__ = { 
-    page: 'example-page', 
-    placement: ["example1", "example2"] 
+    "page": "example-page", 
+    "placement": ["example1", "example2"] 
 }
 
 # Sample with multiple placement points

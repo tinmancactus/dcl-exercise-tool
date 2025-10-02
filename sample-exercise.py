@@ -1,13 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__metadata__ = { 
-    page: 'introduction-to-python', 
-    placement: 'datacamp' 
+__metadata__ = {
+    "course": "Tim's Sandpit",
+    "page": "dcl-3",
+    "placement": "datacamp"
 }
 
-# Introduction to Python
-# This is a simple Python exercise for DataCamp Light
+# Sample Python code for DataCamp Light
+def greet(name):
+    return f"Hello, {name}!"
+
+print(greet("World"))
 
 # Print a welcome message
 print("Welcome to Python!")

@@ -156,9 +156,6 @@ class CanvasService {
    */
   insertContentAtPlaceholder(html, placement, content, isRawCode = false, includeLineNumbers = false) {
     try {
-      // Debug log
-      console.log('insertContentAtPlaceholder called:', { placement, isRawCode, includeLineNumbers });
-      
       // Use DOMParser if available (browser environment) or jsdom approach for server
       // For now, we'll use a simpler approach with string manipulation
       const tempDiv = document.createElement('div');
