@@ -17,7 +17,8 @@ function App() {
     canvasApiKey: '',
     courseUrl: '',
     githubRepoUrl: '',
-    includeLineNumbers: true // Default to true for line numbers
+    includeLineNumbers: true, // Default to true for line numbers
+    customClasses: '' // Default to empty string
   });
   const [selectedDirectory, setSelectedDirectory] = useState('');
   const [verificationResults, setVerificationResults] = useState(null);

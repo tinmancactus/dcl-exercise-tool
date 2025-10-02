@@ -30,7 +30,8 @@ const processExercises = async (config, onProgress, onError) => {
       githubRepoUrl: config.githubRepoUrl,
       directoryPath: config.directoryPath,
       useCorsProxy: config.useCorsProxy || false,
-      includeLineNumbers: config.includeLineNumbers !== undefined ? config.includeLineNumbers : true
+      includeLineNumbers: config.includeLineNumbers !== undefined ? config.includeLineNumbers : true,
+      customClasses: config.customClasses || ''
     });
     
     // Process the exercises

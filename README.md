@@ -137,16 +137,18 @@ Use a `<pre>` element for displaying raw code without interactivity:
 
 The raw Python code (without the metadata block) will be inserted into this pre element for display purposes only.
 
-#### Line Numbers
+#### Line Numbers and Custom Classes
 
 When the "Include line numbers" option is enabled (default), non-interactive code blocks will be formatted with:
 - The `line-numbers` class added to the `<pre>` element
 - Code wrapped in a `<code class="language-python">` element
 
+You can also add custom CSS classes to non-interactive code blocks by entering them in the "Custom CSS Classes" field (space-separated). These classes will be added to the `<pre>` element in addition to any other classes.
+
 This follows Prism.js conventions for syntax highlighting with line numbers. The resulting HTML will look like:
 
 ```html
-<pre class="line-numbers" data-code-placement="example">
+<pre class="line-numbers custom-code highlight-python" data-code-placement="example">
   <code class="language-python">
 # Your Python code here
 print("Hello, world!")
@@ -154,7 +156,7 @@ print("Hello, world!")
 </pre>
 ```
 
-**Note:** You'll need to include Prism.js CSS and JavaScript in your Canvas theme for the line numbers and syntax highlighting to display correctly.
+**Note:** You'll need to include Prism.js CSS and JavaScript in your Canvas theme for the line numbers and syntax highlighting to display correctly. Custom classes will only have an effect if you've defined corresponding CSS rules in your Canvas theme.
 
 ## Troubleshooting
 

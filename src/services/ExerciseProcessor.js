@@ -316,7 +316,8 @@ class ExerciseProcessor {
             placement,
             contentToInsert,
             elementType === 'pre', // isRawCode flag
-            this.config.includeLineNumbers // includeLineNumbers flag
+            this.config.includeLineNumbers, // includeLineNumbers flag
+            this.config.customClasses || '' // customClasses
           );
           
           updatedPlacements.push({

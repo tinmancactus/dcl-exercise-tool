@@ -31,6 +31,7 @@ const InputForm = ({ onSubmit }) => {
   const [githubRepoUrl, setGithubRepoUrl] = useState('');
   const [githubToken, setGithubToken] = useState('');
   const [includeLineNumbers, setIncludeLineNumbers] = useState(true);
+  const [customClasses, setCustomClasses] = useState('');
   const [error, setError] = useState('');
   const [showApiKey, setShowApiKey] = useState(false);
   const [showGithubToken, setShowGithubToken] = useState(false);
@@ -84,7 +85,8 @@ const InputForm = ({ onSubmit }) => {
         courseUrl,
         githubRepoUrl,
         githubToken,
-        includeLineNumbers
+        includeLineNumbers,
+        customClasses: customClasses.trim()
       });
     }
   };
@@ -265,6 +267,18 @@ const InputForm = ({ onSubmit }) => {
           </HStack>
           <FormHelperText>
             When enabled, non-interactive code blocks (in &lt;pre&gt; tags) will display with line numbers using Prism.js styling.
+          </FormHelperText>
+        </FormControl>
+        
+        <FormControl>
+          <FormLabel>Custom CSS Classes for Non-Interactive Code Blocks (Optional)</FormLabel>
+          <Input
+            placeholder="e.g., custom-code highlight-python"
+            value={customClasses}
+            onChange={(e) => setCustomClasses(e.target.value)}
+          />
+          <FormHelperText>
+            Add custom CSS class names (space-separated) to apply to &lt;pre&gt; elements. These will be added in addition to any other classes like 'line-numbers'.
           </FormHelperText>
         </FormControl>
         

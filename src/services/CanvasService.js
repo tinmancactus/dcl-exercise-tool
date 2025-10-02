@@ -152,9 +152,10 @@ class CanvasService {
    * @param {string} content - Content to insert
    * @param {boolean} isRawCode - If true, insert as raw code (for pre tags)
    * @param {boolean} includeLineNumbers - If true, add line-numbers class to pre elements
+   * @param {string} customClasses - Custom CSS classes to add to pre elements
    * @returns {string} Updated HTML
    */
-  insertContentAtPlaceholder(html, placement, content, isRawCode = false, includeLineNumbers = false) {
+  insertContentAtPlaceholder(html, placement, content, isRawCode = false, includeLineNumbers = false, customClasses = '') {
     try {
       // Use DOMParser if available (browser environment) or jsdom approach for server
       // For now, we'll use a simpler approach with string manipulation
@@ -183,25 +184,25 @@ class CanvasService {
           
           // Build the class attribute for pre element
           let preClass = '';
-          if (includeLineNumbers) {
-            // Check if line-numbers class already exists in the matched element
-            const classMatch = match[0].match(/class=["']([^"']*)["']/);
-            if (classMatch) {
-              const existingClasses = classMatch[1];
-              if (!existingClasses.includes('line-numbers')) {
-                preClass = ` class="${existingClasses} line-numbers"`;
-              } else {
-                preClass = ` class="${existingClasses}"`;
-              }
-            } else {
-              preClass = ' class="line-numbers"';
-            }
-          } else {
-            // Even if includeLineNumbers is false, preserve existing classes
-            const classMatch = match[0].match(/class=["']([^"']*)["']/);
-            if (classMatch) {
-              preClass = ` class="${classMatch[1]}"`;
-            }
+          const classMatch = match[0].match(/class=["']([^"']*)["']/);
+          const existingClasses = classMatch ? classMatch[1] : '';
+          
+          // Collect all classes to add
+          const classesToAdd = [];
+          if (existingClasses) {
+            classesToAdd.push(existingClasses);
+          }
+          if (includeLineNumbers && !existingClasses.includes('line-numbers')) {
+            classesToAdd.push('line-numbers');
+          }
+          if (customClasses) {
+            // Add custom classes, avoiding duplicates
+            const customClassArray = customClasses.split(/\s+/).filter(c => c && !classesToAdd.includes(c));
+            classesToAdd.push(...customClassArray);
+          }
+          
+          if (classesToAdd.length > 0) {
+            preClass = ` class="${classesToAdd.join(' ')}"`;
           }
           
           return html.replace(match[0], `<${elementType}${preClass} data-code-placement="${placement}"><code class="language-python">${escapedContent}</code></${elementType}>`);
@@ -215,6 +216,16 @@ class CanvasService {
         // For pre elements, add line-numbers class if requested
         if (includeLineNumbers && !placeholder.classList.contains('line-numbers')) {
           placeholder.classList.add('line-numbers');
+        }
+        
+        // Add custom classes if provided
+        if (customClasses) {
+          const customClassArray = customClasses.split(/\s+/).filter(c => c);
+          customClassArray.forEach(className => {
+            if (!placeholder.classList.contains(className)) {
+              placeholder.classList.add(className);
+            }
+          });
         }
         
         // Create a code element with language-python class
