@@ -29,7 +29,8 @@ const processExercises = async (config, onProgress, onError) => {
       courseUrl: config.courseUrl,
       githubRepoUrl: config.githubRepoUrl,
       directoryPath: config.directoryPath,
-      useCorsProxy: config.useCorsProxy || false
+      useCorsProxy: config.useCorsProxy || false,
+      includeLineNumbers: config.includeLineNumbers !== undefined ? config.includeLineNumbers : true
     });
     
     // Process the exercises

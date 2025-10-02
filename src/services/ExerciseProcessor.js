@@ -294,12 +294,23 @@ class ExerciseProcessor {
             isInteractive = true;
           }
           
+          // Debug log
+          console.log('Processing placement:', {
+            placement,
+            elementType,
+            isRawCode: elementType === 'pre',
+            includeLineNumbers: this.config.includeLineNumbers,
+            config: this.config,
+            configKeys: Object.keys(this.config)
+          });
+          
           // Update content with this placement
           updatedContent = CanvasService.insertContentAtPlaceholder(
             updatedContent, // Use previously updated content for each iteration
             placement,
             contentToInsert,
-            elementType === 'pre' // isRawCode flag
+            elementType === 'pre', // isRawCode flag
+            this.config.includeLineNumbers // includeLineNumbers flag
           );
           
           updatedPlacements.push({

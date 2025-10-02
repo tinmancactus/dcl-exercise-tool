@@ -16,7 +16,8 @@ function App() {
   const [formData, setFormData] = useState({
     canvasApiKey: '',
     courseUrl: '',
-    githubRepoUrl: ''
+    githubRepoUrl: '',
+    includeLineNumbers: true // Default to true for line numbers
   });
   const [selectedDirectory, setSelectedDirectory] = useState('');
   const [verificationResults, setVerificationResults] = useState(null);
@@ -27,7 +28,9 @@ function App() {
   const [currentView, setCurrentView] = useState('main'); // 'main', 'metadata', 'canvas'
 
   const handleFormSubmit = (data) => {
+    console.log('handleFormSubmit received data:', data);
     setFormData(data);
+    console.log('formData after setState:', data);
     
     // If a GitHub token is provided, set it in the GitHubService
     if (data.githubToken) {

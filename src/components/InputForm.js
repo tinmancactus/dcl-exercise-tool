@@ -7,6 +7,7 @@ import {
   FormHelperText,
   Input,
   VStack,
+  HStack,
   Heading,
   Alert,
   AlertIcon,
@@ -29,6 +30,7 @@ const InputForm = ({ onSubmit }) => {
   const [courseUrl, setCourseUrl] = useState('');
   const [githubRepoUrl, setGithubRepoUrl] = useState('');
   const [githubToken, setGithubToken] = useState('');
+  const [includeLineNumbers, setIncludeLineNumbers] = useState(true);
   const [error, setError] = useState('');
   const [showApiKey, setShowApiKey] = useState(false);
   const [showGithubToken, setShowGithubToken] = useState(false);
@@ -81,7 +83,8 @@ const InputForm = ({ onSubmit }) => {
         canvasApiKey,
         courseUrl,
         githubRepoUrl,
-        githubToken
+        githubToken,
+        includeLineNumbers
       });
     }
   };
@@ -246,6 +249,23 @@ const InputForm = ({ onSubmit }) => {
               For private repositories or to avoid rate limiting. Create one at GitHub → Settings → Developer Settings → Personal access tokens.
             </FormHelperText>
           )}
+        </FormControl>
+        
+        <FormControl>
+          <HStack spacing={3}>
+            <Switch
+              id="line-numbers"
+              isChecked={includeLineNumbers}
+              onChange={(e) => setIncludeLineNumbers(e.target.checked)}
+              colorScheme="blue"
+            />
+            <FormLabel htmlFor="line-numbers" mb={0}>
+              Include line numbers in non-interactive code blocks
+            </FormLabel>
+          </HStack>
+          <FormHelperText>
+            When enabled, non-interactive code blocks (in &lt;pre&gt; tags) will display with line numbers using Prism.js styling.
+          </FormHelperText>
         </FormControl>
         
         <Button type="submit" colorScheme="blue" size="lg" alignSelf="flex-start">
