@@ -56,6 +56,7 @@ function App() {
   const handleVerifyAgain = () => {
     setVerificationResults(null);
     setIsVerifying(true);
+    setStep(3); // Go back to verification status screen
   };
   
   const handleProceedToProcessing = () => {
