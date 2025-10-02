@@ -163,9 +163,8 @@ const DirectoryBrowser = ({ githubRepoUrl, onDirectorySelect }) => {
                 colorScheme="blue" 
                 size="lg"
                 onClick={handleSelectDirectory}
-                isDisabled={!currentPath}
               >
-                Select This Directory
+                {currentPath ? 'Select This Directory' : 'Select Root Directory'}
               </Button>
             </Box>
           </>
