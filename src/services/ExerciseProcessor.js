@@ -126,11 +126,27 @@ class ExerciseProcessor {
           
           successCount++;
         } catch (error) {
+          // Try to extract page info for Canvas URL even on error
+          let canvasPageUrl = null;
+          try {
+            const fileContent = await GitHubService.getFileContent(
+              this.config.githubRepoUrl,
+              filePath
+            );
+            const { metadata } = MetadataParser.processPythonFile(fileContent);
+            if (metadata && metadata.page) {
+              canvasPageUrl = this.constructCanvasPageUrl(this.courseId, metadata.page);
+            }
+          } catch (metadataError) {
+            // If we can't get metadata, that's okay - just won't have a link
+          }
+          
           // Handle error for this file
           results.push({
             file: filePath,
             status: 'error',
-            error: error.message
+            error: error.message,
+            canvasPageUrl
           });
           
           errorCount++;

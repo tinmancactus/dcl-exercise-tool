@@ -125,7 +125,20 @@ const ResultsReport = ({ results, onStartOver }) => {
                         )}
                       </VStack>
                     ) : (
-                      <Text color="red.500">{result.error}</Text>
+                      <VStack align="start" spacing={1}>
+                        <Text color="red.500">{result.error}</Text>
+                        {result.canvasPageUrl && (
+                          <HStack>
+                            <Text fontSize="sm" fontWeight="bold">Page:</Text>
+                            <Tooltip label="Open Canvas page in new tab">
+                              <Link href={result.canvasPageUrl} isExternal color="blue.500" fontSize="sm">
+                                View in Canvas
+                                <Icon as={FaExternalLinkAlt} ml={1} boxSize={3} />
+                              </Link>
+                            </Tooltip>
+                          </HStack>
+                        )}
+                      </VStack>
                     )}
                   </Td>
                 </Tr>

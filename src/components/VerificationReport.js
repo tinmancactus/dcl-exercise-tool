@@ -144,6 +144,15 @@ const VerificationReport = ({ results, onStartOver, onProceed, onVerifyAgain, is
                           </Td>
                           <Td>
                             <Text>{check.message}</Text>
+                            {check.name === 'page_exists' && check.canvasPageUrl && (
+                              <Box mt={1}>
+                                <Text fontSize="sm" color="blue.600">
+                                  <a href={check.canvasPageUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'underline' }}>
+                                    View page in Canvas →
+                                  </a>
+                                </Text>
+                              </Box>
+                            )}
                             {check.name === 'metadata_valid' && check.passed && check.metadata && (
                               <Box mt={1} p={2} bg="gray.50" borderRadius="md" fontSize="sm">
                                 <Text fontWeight="bold">Metadata:</Text>

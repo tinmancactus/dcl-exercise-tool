@@ -8,6 +8,7 @@ import MetadataParser from './MetadataParser';
 class VerificationService {
   constructor() {
     this.githubRepoUrl = null;
+    this.courseUrl = null;
     this.courseId = null;
   }
 
@@ -20,6 +21,7 @@ class VerificationService {
    */
   initialize(config) {
     this.githubRepoUrl = config.githubRepoUrl;
+    this.courseUrl = config.courseUrl;
     
     // Extract course ID from the course URL
     this.courseId = this.extractCourseId(config.courseUrl);
@@ -49,6 +51,22 @@ class VerificationService {
       }
       
       return pathMatch[1];
+    } catch (error) {
+      return null;
+    }
+  }
+
+  /**
+   * Construct the full Canvas page URL
+   * @param {string} pageSlug - Canvas page slug
+   * @returns {string|null} Full Canvas page URL or null
+   */
+  constructCanvasPageUrl(pageSlug) {
+    if (!this.courseId || !pageSlug) return null;
+    
+    try {
+      const parsedUrl = new URL(this.courseUrl);
+      return `${parsedUrl.protocol}//${parsedUrl.host}/courses/${this.courseId}/pages/${pageSlug}`;
     } catch (error) {
       return null;
     }
@@ -157,11 +175,13 @@ class VerificationService {
           // Check 3: Canvas page exists
           try {
             const page = await CanvasService.getPage(metadata.page);
+            const canvasPageUrl = this.constructCanvasPageUrl(metadata.page);
             checks.push({
               name: 'page_exists',
               passed: true,
               message: 'Canvas page exists',
-              pageTitle: page.title
+              pageTitle: page.title,
+              canvasPageUrl
             });
 
             // Check 4: Placement exists in the page
@@ -263,10 +283,12 @@ class VerificationService {
               isValid = false;
             }
           } catch (pageError) {
+            const canvasPageUrl = this.constructCanvasPageUrl(metadata.page);
             checks.push({
               name: 'page_exists',
               passed: false,
-              message: `Canvas page '${metadata.page}' not found`
+              message: `Canvas page '${metadata.page}' not found`,
+              canvasPageUrl
             });
             isValid = false;
           }
